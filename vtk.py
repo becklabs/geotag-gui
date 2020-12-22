@@ -12,21 +12,14 @@ import os
 import sys
 import pandas as pd
 import pytz
+from hachoir.parser import createParser
+from hachoir.metadata import extractMetadata
 
-def getCreationDate(file):
-    #GET CREATEDATE FROM EXIFTOOL
-    stream = os.popen('exiftool '+file)
-    output = stream.read().split('\n')
-    for item in output:
-        item = item.replace(' ','')
-        if item.split(':')[0] == 'TrackCreateDate':
-            break
-    datelist=item.split(':')[1:]
-    creationdate = ''
-    for item in datelist:
-        creationdate = creationdate+item
-    creationdate = dateparser.parse(creationdate)
-    return creationdate
+
+def getCreationDate(filename):
+    parser = createParser(filename)
+    metadata = extractMetadata(parser)
+    return metadata.get('creation_date')
 
 def getOffsets(file):
     #GET DELTA SECONDS FOR EVERY FRAME
