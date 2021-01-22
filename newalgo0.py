@@ -40,13 +40,13 @@ class Project:
     def match(self, time_col, lat_col, long_col, ele_col, video_tz, track_tz):
         self.taggedDFs = []
         for pointsDF in self.pointsDFs:
-            pointsDF = trackParse(pointsDF, time_col, lat_col, long_col, ele_col, track_tz)
+            pointsDF = trackParse(pointsDF, time_col, lat_col, long_col, ele_col)
+            pointsDF['Timestamp'] = [track_tz.localize(ts.replace(tzinfo=None), is_dst = None).astimezone(pytz.timezone('UTC')) for ts in pointsDF['Timestamp']]
             for framesDF in self.framesDFs:   
-                print(type(framesDF['Timestamp'][0]))
-                framesDF['Timestamp'] = [video_tz.localize(ts).astimezone(pytz.timezone('UTC')) for ts in framesDF['Timestamp']]
-                print(framesDF['Timestamp'])
+                framesDF['Timestamp'] = [video_tz.localize(ts.replace(tzinfo=None), is_dst = None).astimezone(pytz.timezone('UTC')) for ts in framesDF['Timestamp']]
                 #Check if matching is possible
                 if (pointsDF['Timestamp'].iloc[0] - framesDF['Timestamp'].iloc[-1]).total_seconds() > 0 or (framesDF['Timestamp'].iloc[0] - pointsDF['Timestamp'].iloc[-1]).total_seconds() > 0:
+                    print('matching impossible')
                     continue
                 
                 video_ind = self.framesDFs.index(framesDF)
@@ -82,8 +82,8 @@ class Project:
                 taggedDF = taggedDF.reset_index(drop=True)
                 self.taggedDFs.append(taggedDF)
                 self.framesDFs.pop(video_ind)
-                self.pointsDFs[track_ind] = pointsDF.drop(matched_inds)
-                del(taggedDF,pointsDF,framesDF)
+                pointsDF = pointsDF.drop(matched_inds)
+                del(taggedDF,framesDF)
                     
     def export(self, export_path):
         

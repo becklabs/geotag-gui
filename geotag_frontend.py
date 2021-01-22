@@ -6,6 +6,7 @@ import os
 import datetime
 import pandas as pd
 from pytz import timezone
+import pytz
 
 #WINDOW CLASS FORMAT (doesnt include __init__)
 #1. WINDOW VARIABLES
@@ -327,16 +328,16 @@ class MatchPage(tk.Frame):
         ele_col_menu = tk.OptionMenu(self, self.ele_col_str, *columns)
         
         abbrev_tz = ['UTC','AST','EST','EDT','CST','CDT','MST','MDT','PST','PDT','AKST','AKDT','HST','HAST','HADT','SST','SDT','CHST']
-        
+        pytz.common_timezones
         self.video_tz_str = tk.StringVar(self)
         self.video_tz_str.set('EST')
         video_tz_label = tk.Label(self, text = 'Video Timezone:')
-        video_tz_menu = tk.OptionMenu(self, self.video_tz_str, *abbrev_tz)
+        video_tz_menu = tk.OptionMenu(self, self.video_tz_str, *pytz.common_timezones)
         
         self.track_tz_str = tk.StringVar(self)
         self.track_tz_str.set('UTC')
         track_tz_label = tk.Label(self, text = 'Track Timezone:')
-        track_tz_menu = tk.OptionMenu(self, self.track_tz_str, *abbrev_tz)
+        track_tz_menu = tk.OptionMenu(self, self.track_tz_str, *pytz.common_timezones)
         
         self.match_status_str = tk.StringVar(self)
         match_status = tk.Label(self,textvariable = self.match_status_str)

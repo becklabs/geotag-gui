@@ -95,6 +95,7 @@ def getTimestamps(file, config):
     df['Frame'] = frames
     df['Timestamp'] = timestamps
     return df
+
 def getFps(file):
     cap = cv2.VideoCapture(file)
     return int(cap.get(cv2.CAP_PROP_FPS))

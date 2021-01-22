@@ -37,10 +37,9 @@ def trackExtract(gps_filename):
         gps_telem = read_gpx(gps_filename)
     return gps_telem
 
-def trackParse(data, time_col, lat_col, long_col, ele_col, track_tz):
+def trackParse(data, time_col, lat_col, long_col, ele_col):
     gps_telem = pd.DataFrame()
-    gps_telem['Timestamp'] = [track_tz.localize(dateparser.parse(data.loc[i,time_col])).astimezone(pytz.timezone('UTC')) for i in range(len(data[time_col]))]
-    print(gps_telem['Timestamp'])
+    gps_telem['Timestamp'] = [dateparser.parse(data.loc[i,time_col]) for i in range(len(data[time_col]))]
     gps_telem['Latitude'] = data[lat_col]
     gps_telem['Longitude'] = data[long_col]
     if ele_col != 'None':
