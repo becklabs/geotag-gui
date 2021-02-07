@@ -9,7 +9,6 @@ import pandas as pd
 import gpxpy
 import pytz
 import dateparser
-import sys
 import datetime
 
 def read_gpx(gps_filename):
@@ -18,7 +17,6 @@ def read_gpx(gps_filename):
         gpx = gpxpy.parse(gpxfile)
         for track in gpx.tracks:
             for segment in track.segments:
-                sys.stdout.flush()
                 for point in segment.points:
                     dict = {'timestamp': point.time,
                             'latitude': point.latitude,
@@ -39,9 +37,11 @@ def trackExtract(gps_filename):
 
 def trackParse(data, time_col, lat_col, long_col, ele_col):
     gps_telem = pd.DataFrame()
-    gps_telem['Timestamp'] = [dateparser.parse(data.loc[i,time_col]) for i in range(len(data[time_col]))]
+    gps_telem['Timestamp'] = [(dateparser.parse(data.loc[i,time_col])).replace(tzinfo = pytz.timezone('UTC')) for i in range(len(data[time_col]))]
     gps_telem['Latitude'] = data[lat_col]
     gps_telem['Longitude'] = data[long_col]
     if ele_col != 'None':
         gps_telem['Elevation'] = data[ele_col]
+    else:
+        ele_col = [0 for x in data[lat_col]]
     return gps_telem

@@ -16,8 +16,12 @@ from hachoir.parser import createParser
 from hachoir.metadata import extractMetadata
 from PIL import Image 
 import numpy as np
+import tempfile
 import pytesseract
 import imutils
+import time
+from GPSPhoto import gpsphoto
+from threading import Thread
 
 def firstFrame(video):
     if 'timestamp_frame' not in os.listdir(os.getcwd()):
@@ -65,27 +69,12 @@ def getOffsets(file):
     offsets = [datetime.timedelta(milliseconds=i) for i in offsets]
     return offsets
 
-def splitPath(file):
-    if '\\' in file:
-        listfile = file.split('\\')
-        filename = listfile[-1]
-        folder = file[:len(file)-len(filename)]
-    elif '/' in file:
-        listfile = file.split('/')
-        filename = listfile[-1]
-        folder = file[:len(file)-len(filename)]
-    else:
-        filename=file
-        folder = ''
-    return folder,filename
-        
-        
 def getTimestamps(file, config):
     offsets = getOffsets(file)
     creationdate = getCreationDate(file, config)
     
     #CALCULATE TIMESTAMPS
-    timestamps = [creationdate+offset for offset in offsets]
+    timestamps = [(creationdate+offset).replace(tzinfo = pytz.timezone('UTC')) for offset in offsets]
     
     #GENERATE FRAME NAMES
     frames = [file.split('/')[-1]+'_'+str(i)+'.jpg' for i in range(len(timestamps))]
@@ -100,26 +89,54 @@ def getFps(file):
     cap = cv2.VideoCapture(file)
     return int(cap.get(cv2.CAP_PROP_FPS))
 
-def createFrames(file,projectPath,export_path,taggedDF):
-    taggedList = [taggedDF.loc[i,'Frame'] for i in range(len(taggedDF['Frame']))]
-    short_fnames = [int(i.split('.')[1].split('_')[1]) for i in taggedList]
-    frames = {}
-    if export_path not in os.listdir(projectPath):
-        os.mkdir(projectPath+export_path)
-    cap = cv2.VideoCapture(file)
-    sys.stdout.flush()
-    pbar = tqdm(total=len(taggedList))
-    i=0
-    with tqdm(total=len(taggedList)) as pbar:
-        while(cap.isOpened()):
-            frame_exists, frame = cap.read()
-            if frame_exists:
-                if i in short_fnames:
-                    frames[taggedList[short_fnames.index(i)]] = frame
-                    pbar.update(1)
-                i+=1
-            else:
-                break
-    cap.release()
-    for i in tqdm(frames):
-        cv2.imwrite(export_path+'/'+i,frames.get(i))
+class Writer:
+    def __init__(self, stream, export_path, taggedDF, parent, controller):
+        self.taggedDF = taggedDF.reset_index()
+        self.export_path = export_path
+        self.taggedList = [self.taggedDF.loc[i,'Frame'] for i in range(len(self.taggedDF['Frame']))]
+        self.frame_inds = [int(i.split('.')[1].split('_')[1]) for i in self.taggedList]
+        self.parent = parent
+        self.controller = controller
+        self.stream = cv2.VideoCapture(stream)
+        self.thread = Thread(target=self.write, args=())
+        self.thread.setDaemon(True)
+        
+    def write(self):
+        i = 0
+        for frame_ind in self.frame_inds:
+            self.stream.set(cv2.CAP_PROP_POS_FRAMES, frame_ind)
+            (grabbed, frame) = self.stream.read()
+            frame_path = self.export_path+self.taggedList[self.frame_inds.index(frame_ind)]
+            cv2.imwrite(frame_path, frame)
+            #ADD METADATA
+            photo = gpsphoto.GPSPhoto(frame_path)
+            info = gpsphoto.GPSInfo((self.taggedDF.loc[i, 'Latitude'], 
+                                     self.taggedDF.loc[i, 'Longitude']), 
+                                    timeStamp=self.taggedDF.loc[i, 'Timestamp'],
+                                    alt=int(self.taggedDF.loc[i, 'Elevation']))
+            photo.modGPSData(info, frame_path)
+            self.parent.num+=1
+            i+=1
+            self.parent.e_status.set('Writing: '+str(self.parent.num)+'/'+str(self.parent.denom))
+        self.stream.release()
+        return
+    
+def createFrames(path, export_path, taggedDF, parent, controller):
+    x = len(taggedDF)
+    a = int(round(x/3))
+    b = int(a*2)
+
+    writer1 = Writer(path, export_path, taggedDF.iloc[:a], parent, controller)
+    writer2 = Writer(path, export_path, taggedDF.iloc[a:b], parent, controller)
+    writer3 = Writer(path, export_path, taggedDF.iloc[b:], parent, controller)
+    
+    writer1.thread.start()
+    writer2.thread.start()
+    writer3.thread.start()
+    
+    writer1.thread.join()
+    writer2.thread.join()
+    writer3.thread.join()
+    
+    parent.e_status.set('Done')
+    
