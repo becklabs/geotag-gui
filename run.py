@@ -1,7 +1,14 @@
 import subprocess
 import time
 import sys
-
+try:
+    import tkinter
+except ImportError:
+    print('Could not find tkinter installation')
+    print('Exiting in 5 sec...')
+    time.sleep(5)
+    sys.exit()
+    
 required = {'cv2':'opencv-python',
             'datetime':'datetime',
             'dateparser':'dateparser',
@@ -34,7 +41,8 @@ for module in required:
             time.sleep(5)
             sys.exit()
         print('Installed '+module)
-print('Starting App')
+print('Starting App...')
+
 from frontend import GeotagTool    
 app = GeotagTool() 
 app.geometry('560x460')
