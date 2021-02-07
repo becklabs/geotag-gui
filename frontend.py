@@ -492,6 +492,3 @@ class ExportPage(tk.Frame):
             
         self.controller.project.export(self.epath_str.get(), self.e_status_str, self.controller)
 
-app = GeotagTool() 
-app.geometry('560x460')
-app.mainloop()
