@@ -5,7 +5,6 @@ Created on Wed Aug 19 19:50:43 2020
 @author: beck
 """
 import cv2
-from tqdm import *
 import datetime
 import dateparser
 import os
@@ -16,7 +15,6 @@ from hachoir.parser import createParser
 from hachoir.metadata import extractMetadata
 from PIL import Image 
 import numpy as np
-import tempfile
 import pytesseract
 import imutils
 import time
@@ -48,9 +46,9 @@ def formatFrame(image, LEFT = 50, TOP = 20, RIGHT = 250, BOTTOM = 90):
 
 def getCreationDate(filename, config):
     if config == 'trident':
-        pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe'
-        image = formatFrame(firstFrame(video))
-        data = pytesseract.image_to_string(thresh, lang='eng',config='--psm 6')
+        pytesseract.pytesseract.tesseract_cmd = 'Tesseract-OCR\\tesseract.exe'
+        image = formatFrame(firstFrame(filename))
+        data = pytesseract.image_to_string(image, lang='eng',config='--psm 6')
         data_str = str(data).split('\n')
         metadata = dateparser.parse(data_str[0]+ ' '+data_str[1])
     else:
